@@ -1,6 +1,5 @@
 # ci4_discord_bot
-Dependecies:
-Python3.8
+Minimum python version: 3.8
 
 Install:
 ```
