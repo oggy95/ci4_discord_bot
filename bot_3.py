@@ -11,26 +11,12 @@ with open("config.json") as file:
     config = json.load(file)
     TELEGRAM_TOKEN = config["telegram_token"]
     TOKEN = config["api_token"]
-    CHANNEL_ID = config["main_channel"]
-    CYTATY_CHANNEL = config["channel_quotes"]
-    GAME_ALERT_CHANNEL = config["game_alert"]
+    QUOTES_CHANNEL = config["channel_quotes"]
     ENGLISH_CHANNEL = config["english_channel"]
 
 API_LINK = "https://meme-api.herokuapp.com/gimme/wholesomememes"
 
 client = commands.Bot(command_prefix='!')
-
-NODE_WAR_TEXT_ENGLISH = '''@⚔️Ci4⚔️ Hi everyone :slight_smile:
-Today we go T2 node at 19:00 by server time! Please be ready!
-If you can't be at NW tomorrow, write about it in #⛺day-offs
-Gather at voice channel in discord at 18:40 to discuss strategy on NW!
-Guild bosses will be after NW!'''
-
-NODE_WAR_TEXT_UKRAINIAN = '''@⚔️Ci4⚔️ Всім привіт 
-Сьогодні ми йдемо на вузол 2 рівня на 19:00 по серверному часу (21:00 по нашому). Тому просимо вашої активності!
-Якщо у вас не виходить бути на вузлі, відпишіть про це в #⛺day-offs
-Збирайтесь у голосовому чаті в 20:40 для обговорення тактики на вузлі!
-Гільд боси будуть сьогодні, відразу після вузла!'''
 
 
 @client.command(aliases=['випити', 'drink'], help='Прибухнем? | Cheers? :)')
@@ -82,7 +68,7 @@ async def laytenn(ctx):
 
 @client.command(name='рандом', help='Випадкова цитата гільдії')
 async def bosses(ctx):
-    channel_id = client.get_channel(CYTATY_CHANNEL)
+    channel_id = client.get_channel(QUOTES_CHANNEL)
     messages = await channel_id.history(limit=123).flatten()
     await ctx.send(ctx.message.author.mention + ", що ти хочеш? От тобі цитата: " + random.choice(messages).content)
 
@@ -96,16 +82,17 @@ async def on_command_error(ctx, error):
 @client.event
 async def on_message(message):
     language = TextBlob(message.content).detect_language()
-    translator = Translator()
-    if len(message.content) >= 3 and not message.content.startswith("!") and message.author != client.user and not message.content.startswith("http") and message.channel.id != int(ENGLISH_CHANNEL):
-        if language == "en":
-            mes = translator.translate(message.content, src=language, dest='uk')
-        elif language in ["uk", "ru"]:
-            mes = translator.translate(message.content, src=language, dest='en')
+    if len(message.content) >= 3 \
+            and not message.content.startswith("!") \
+            and not message.content.startswith("http") \
+            and message.author != client.user \
+            and message.channel.id != int(ENGLISH_CHANNEL):
+        mes = translator.translate(message.content, src=language, dest='uk' if language == "en" else "en")
         response_message = f'{message.author.nick} said:\n> {mes.text}'
         await message.channel.send(response_message)
     await client.process_commands(message)
 
 
+translator = Translator()
 logging.basicConfig(level=logging.INFO)
 client.run(TOKEN)
