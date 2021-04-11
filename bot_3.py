@@ -81,12 +81,12 @@ async def on_command_error(ctx, error):
 
 @client.event
 async def on_message(message):
-    language = TextBlob(message.content).detect_language()
     if len(message.content) >= 3 \
             and not message.content.startswith("!") \
             and not message.content.startswith("http") \
             and message.author != client.user \
             and message.channel.id != int(ENGLISH_CHANNEL):
+        language = TextBlob(message.content).detect_language()
         mes = translator.translate(message.content, src=language, dest='uk' if language == "en" else "en")
         response_message = f'{message.author.nick} said:\n> {mes.text}'
         await message.channel.send(response_message)
