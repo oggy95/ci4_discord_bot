@@ -4,6 +4,7 @@ import json
 
 from aiohttp import ClientSession
 from discord.ext import commands
+from textblob import TextBlob
 
 with open("config.json") as file:
     config = json.load(file)
@@ -94,11 +95,17 @@ async def on_command_error(ctx, error):
 @client.event
 async def on_message(message):
     restricted_authors = ["Smoogle Translate#1934", "Бандерівець#4954"]
+    language = TextBlob(message.content).detect_language()
     if str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
-        emoji_us = '\U0001f1fa\U0001f1f8'
-        emoji_ua = '\U0001f1fa\U0001f1e6'
-        await message.add_reaction(emoji_us)
-        await message.add_reaction(emoji_ua)
+        if language == "en":
+            # emoji ua
+            await message.add_reaction('\U0001f1fa\U0001f1e6')
+        elif language == "uk":
+            # emoji us
+            await message.add_reaction('\U0001f1fa\U0001f1f8')
+        elif language == "ru":
+            # emoji us
+            await message.add_reaction('\U0001f1fa\U0001f1f8')
     await client.process_commands(message)
 
 
