@@ -4,7 +4,6 @@ import json
 
 from aiohttp import ClientSession
 from discord.ext import commands
-from discord.ext.tasks import loop
 
 with open("config.json") as file:
     config = json.load(file)
@@ -13,6 +12,7 @@ with open("config.json") as file:
     CHANNEL_ID = config["main_channel"]
     CYTATY_CHANNEL = config["channel_quotes"]
     GAME_ALERT_CHANNEL = config["game_alert"]
+    ENGLISH_CHANNEL = config["english_channel"]
 
 API_LINK = "https://meme-api.herokuapp.com/gimme/wholesomememes"
 
@@ -91,13 +91,15 @@ async def on_command_error(ctx, error):
         await ctx.send("шо, бля? | wtf!?")
 
 
-@loop(seconds=10)
-async def node_war_update_message():
-    channel_id = client.get_channel(GAME_ALERT_CHANNEL)
-    await channel_id.send(NODE_WAR_TEXT_ENGLISH)
-    await channel_id.send(NODE_WAR_TEXT_UKRAINIAN)
+@client.event
+async def on_message(message):
+    if str(message.author) != "Smoogle Translate#1934" and message.channel.id != int(ENGLISH_CHANNEL):
+        emoji_us = '\U0001f1fa\U0001f1f8'
+        emoji_ua = '\U0001f1fa\U0001f1e6'
+        await message.add_reaction(emoji_us)
+        await message.add_reaction(emoji_ua)
+    await client.process_commands(message)
 
 
-node_war_update_message.start()
 logging.basicConfig(level=logging.INFO)
 client.run(TOKEN)
