@@ -92,11 +92,12 @@ async def on_command_error(ctx, error):
 
 
 @loop(seconds=10)
-async def colour_change():
+async def node_war_update_message():
     channel_id = client.get_channel(GAME_ALERT_CHANNEL)
     await channel_id.send(NODE_WAR_TEXT_ENGLISH)
     await channel_id.send(NODE_WAR_TEXT_UKRAINIAN)
 
 
+node_war_update_message.start()
 logging.basicConfig(level=logging.INFO)
 client.run(TOKEN)
