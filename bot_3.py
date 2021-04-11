@@ -93,7 +93,8 @@ async def on_command_error(ctx, error):
 
 @client.event
 async def on_message(message):
-    if str(message.author) != "Smoogle Translate#1934" and message.channel.id != int(ENGLISH_CHANNEL):
+    restricted_authors = ["Smoogle Translate#1934", "Бандерівець#4954"]
+    if str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
         emoji_us = '\U0001f1fa\U0001f1f8'
         emoji_ua = '\U0001f1fa\U0001f1e6'
         await message.add_reaction(emoji_us)
