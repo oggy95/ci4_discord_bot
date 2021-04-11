@@ -5,6 +5,7 @@ import json
 from aiohttp import ClientSession
 from discord.ext import commands
 from textblob import TextBlob
+from googletrans import Translator
 
 with open("config.json") as file:
     config = json.load(file)
@@ -96,17 +97,17 @@ async def on_command_error(ctx, error):
 async def on_message(message):
     restricted_authors = ["Smoogle Translate#1934", "Бандерівець#4954"]
     language = TextBlob(message.content).detect_language()
-    if not message.content.startswith("!") and str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
+    translator = Translator()
+    mes = ""
+    if not message.content.startswith("!") and not message.content.startswith("http") and str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
         if language == "en":
-            # emoji ua
-            await message.add_reaction('\U0001f1fa\U0001f1e6')
+            mes = translator.translate(message.content, src=language, dest='uk')
         elif language == "uk":
-            # emoji us
-            await message.add_reaction('\U0001f1fa\U0001f1f8')
+            mes = translator.translate(message.content, src=language, dest='en')
         elif language == "ru":
-            # emoji us
-            await message.add_reaction('\U0001f1fa\U0001f1f8')
-    await client.process_commands(message)
+            mes = translator.translate(message.content, src=language, dest='en')
+    response_message = f'{message.author.nick} said:\n> {mes.text}'
+    await message.channel.send(response_message)
 
 
 logging.basicConfig(level=logging.INFO)
