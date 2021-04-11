@@ -95,19 +95,16 @@ async def on_command_error(ctx, error):
 
 @client.event
 async def on_message(message):
-    restricted_authors = ["Smoogle Translate#1934", "Бандерівець#4954"]
     language = TextBlob(message.content).detect_language()
     translator = Translator()
-    mes = ""
-    if not message.content.startswith("!") and not message.content.startswith("http") and str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
+    if len(message.content) >= 3 and not message.content.startswith("!") and message.author != client.user and not message.content.startswith("http") and message.channel.id != int(ENGLISH_CHANNEL):
         if language == "en":
             mes = translator.translate(message.content, src=language, dest='uk')
-        elif language == "uk":
+        elif language in ["uk", "ru"]:
             mes = translator.translate(message.content, src=language, dest='en')
-        elif language == "ru":
-            mes = translator.translate(message.content, src=language, dest='en')
-    response_message = f'{message.author.nick} said:\n> {mes.text}'
-    await message.channel.send(response_message)
+        response_message = f'{message.author.nick} said:\n> {mes.text}'
+        await message.channel.send(response_message)
+    await client.process_commands(message)
 
 
 logging.basicConfig(level=logging.INFO)
