@@ -96,7 +96,7 @@ async def on_command_error(ctx, error):
 async def on_message(message):
     restricted_authors = ["Smoogle Translate#1934", "Бандерівець#4954"]
     language = TextBlob(message.content).detect_language()
-    if str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
+    if not message.content.startswith("!") and str(message.author) not in restricted_authors and message.channel.id != int(ENGLISH_CHANNEL):
         if language == "en":
             # emoji ua
             await message.add_reaction('\U0001f1fa\U0001f1e6')
