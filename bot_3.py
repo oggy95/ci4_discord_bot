@@ -87,8 +87,20 @@ async def on_message(message):
             and message.author != client.user \
             and message.channel.id != int(ENGLISH_CHANNEL):
         language = TextBlob(message.content).detect_language()
-        mes = translator.translate(message.content, src=language, dest='uk' if language == "en" else "en")
-        response_message = f'{message.author.nick} said:\n> {mes.text}'
+        message_text = ""
+        if language == "en":
+            uk_text = translator.translate(message.content, src=language, dest="uk")
+            pt_text = translator.translate(message.content, src=language, dest="pt")
+            message_text = f":flag_ua: {uk_text.text}\n:flag_pt: {pt_text.text}"
+        elif language == "pt":
+            uk_text = translator.translate(message.content, src=language, dest="uk")
+            en_text = translator.translate(message.content, src=language, dest="en")
+            message_text = f":flag_ua: {uk_text.text}\n:flag_us: {en_text.text}"
+        elif language == "uk":
+            pt_text = translator.translate(message.content, src=language, dest="pt")
+            en_text = translator.translate(message.content, src=language, dest="en")
+            message_text = f":flag_pt: {pt_text.text}\n:flag_us: {en_text.text}"
+        response_message = f'{message.author.nick} said:\n>>> {message_text}'
         await message.channel.send(response_message)
     await client.process_commands(message)
 
