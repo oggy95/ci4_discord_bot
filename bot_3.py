@@ -19,19 +19,23 @@ API_LINK = "https://meme-api.herokuapp.com/gimme/wholesomememes"
 client = commands.Bot(command_prefix='!')
 
 LANGUAGE_CHOICE = {
-            "en": {
-                "uk": ":flag_ua:",
-                "pt": ":flag_pt:"
-            },
-            "pt": {
-                "uk": ":flag_ua:",
-                "en": ":flag_us:"
-            },
-            "uk": {
-                "en": ":flag_us:",
-                "pt": ":flag_pt:"
-            }
-        }
+    "en": {
+        "uk": ":flag_ua:",
+        "pt": ":flag_pt:"
+    },
+    "pt": {
+        "uk": ":flag_ua:",
+        "en": ":flag_us:"
+    },
+    "uk": {
+        "en": ":flag_us:",
+        "pt": ":flag_pt:"
+    },
+    "ru": {
+        "en": ":flag_us:",
+        "pt": ":flag_pt:"
+    }
+}
 
 
 @client.command(aliases=['мем', 'meme'], help="['мем', 'memes'] Випадковий мем")
