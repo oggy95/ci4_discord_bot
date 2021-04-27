@@ -96,7 +96,7 @@ async def on_message(message):
             uk_text = translator.translate(message.content, src=language, dest="uk")
             en_text = translator.translate(message.content, src=language, dest="en")
             message_text = f":flag_ua: {uk_text.text}\n:flag_us: {en_text.text}"
-        elif language == "uk":
+        elif language in ["uk", "ru"]:
             pt_text = translator.translate(message.content, src=language, dest="pt")
             en_text = translator.translate(message.content, src=language, dest="en")
             message_text = f":flag_pt: {pt_text.text}\n:flag_us: {en_text.text}"
