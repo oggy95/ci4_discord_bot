@@ -18,39 +18,20 @@ API_LINK = "https://meme-api.herokuapp.com/gimme/wholesomememes"
 
 client = commands.Bot(command_prefix='!')
 
-
-@client.command(aliases=['випити', 'drink'], help='Прибухнем? | Cheers? :)')
-async def command_drink(ctx):
-    smiles = [r":champagne_glass:", r":beers:", r":wine_glass:",
-              r":cocktail:", r":beer:", r":champagne:", r":tumbler_glass:"]
-    await ctx.send(random.choice(smiles))
-
-
-@client.command(aliases=['будьмо', 'cheers'], help='Cheers :)')
-async def command_drink2(ctx):
-    await ctx.send(r":beers:")
-
-
-@client.command(aliases=['в', 'вузол', 'n', 'node'], help='["в", "вузол", "n", "node"] Calling to alert for node war!')
-async def command_node_war(ctx, arg):
-    await ctx.send(f"@everyone у нас вузол о {arg}!!!\n@everyone В ДІСКОРДІ БУТИ ОБОВ'ЯЗКОВО!")
-
-
-@client.command(aliases=['х', 'храм', 'shrine', 's', 'Х', 'S'], help="['х', 'храм', 'shrine', 's'] Calling to the "
-                                                                     "shrine in great desert!")
-async def command_shrine(ctx):
-    await ctx.send("@everyone SHRINE|ХРАМ!!!")
-
-
-@client.command(name='смерть', help='')
-async def command_death(ctx):
-    await ctx.send("Смерть москалям!")
-
-
-@client.command(aliases=['чс', 'сонце', 'bs', 'sun', 'BS', 'ЧС'], help="['чс', 'сонце', 'bs', 'sun'] Calling to black "
-                                                                       "sun")
-async def black_sun(ctx, arg):
-    await ctx.send(f"@everyone Чорне Сонце сьогодні в {arg}!")
+LANGUAGE_CHOICE = {
+            "en": {
+                "uk": ":flag_ua:",
+                "pt": ":flag_pt:"
+            },
+            "pt": {
+                "uk": ":flag_ua:",
+                "en": ":flag_us:"
+            },
+            "uk": {
+                "en": ":flag_us:",
+                "pt": ":flag_pt:"
+            }
+        }
 
 
 @client.command(aliases=['мем', 'meme'], help="['мем', 'memes'] Випадковий мем")
@@ -61,13 +42,8 @@ async def memes(ctx):
             await ctx.send(res['url'])
 
 
-@client.command(aliases=['р', 'l', 'Р', 'L'], help="['р', 'l'] Calling to Laytenn")
-async def laytenn(ctx):
-    await ctx.send("@everyone РАЙТЕН! | LAYTENN!")
-
-
 @client.command(name='рандом', help='Випадкова цитата гільдії')
-async def bosses(ctx):
+async def random_quote(ctx):
     channel_id = client.get_channel(QUOTES_CHANNEL)
     messages = await channel_id.history(limit=123).flatten()
     await ctx.send(ctx.message.author.mention + ", що ти хочеш? От тобі цитата: " + random.choice(messages).content)
@@ -82,25 +58,16 @@ async def on_command_error(ctx, error):
 @client.event
 async def on_message(message):
     if len(message.content) >= 3 \
-            and not message.content.startswith("!") \
-            and not message.content.startswith("http") \
+            and not message.content.startswith(("!", "http")) \
             and message.author != client.user \
             and message.channel.id != int(ENGLISH_CHANNEL):
         language = TextBlob(message.content).detect_language()
         message_text = ""
-        if language == "en":
-            uk_text = translator.translate(message.content, src=language, dest="uk")
-            pt_text = translator.translate(message.content, src=language, dest="pt")
-            message_text = f":flag_ua: {uk_text.text}\n:flag_pt: {pt_text.text}"
-        elif language == "pt":
-            uk_text = translator.translate(message.content, src=language, dest="uk")
-            en_text = translator.translate(message.content, src=language, dest="en")
-            message_text = f":flag_ua: {uk_text.text}\n:flag_us: {en_text.text}"
-        elif language in ["uk", "ru"]:
-            pt_text = translator.translate(message.content, src=language, dest="pt")
-            en_text = translator.translate(message.content, src=language, dest="en")
-            message_text = f":flag_pt: {pt_text.text}\n:flag_us: {en_text.text}"
-        response_message = f'{message.author.nick} said:\n>>> {message_text}'
+        if language in LANGUAGE_CHOICE.keys():
+            for key, value in LANGUAGE_CHOICE[language].items():
+                message_text = message_text + f"{value}{translator.translate(message.content, src=language, dest=key).text}\n"
+        response_message = f"{message.author.nick} - sorry, I don't understand you" if message_text == "" else \
+            f'{message.author.nick} said:\n>>> {message_text} '
         await message.channel.send(response_message)
     await client.process_commands(message)
 
