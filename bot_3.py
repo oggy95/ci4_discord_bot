@@ -13,6 +13,7 @@ with open("config.json") as file:
     TOKEN = config["api_token"]
     QUOTES_CHANNEL = config["channel_quotes"]
     ENGLISH_CHANNEL = config["english_channel"]
+    RESTRICTED_CHANNELS = config["restricted_channels"]
 
 API_LINK = "https://meme-api.herokuapp.com/gimme/wholesomememes"
 
@@ -61,23 +62,24 @@ async def on_command_error(ctx, error):
 
 @client.event
 async def on_message(message):
-    if len(message.content) >= 3 \
-            and not message.content.startswith(("!", "http")) \
-            and message.author != client.user:
-        language = TextBlob(message.content).detect_language()
-        message_text = ""
-        response_message = ""
-        if message.channel.id != int(ENGLISH_CHANNEL):
-            if language in LANGUAGE_CHOICE.keys():
-                for key, value in LANGUAGE_CHOICE[language].items():
-                    message_text = message_text + f"{value}{translator.translate(message.content, src=language, dest=key).text}\n"
-            response_message = f"{message.author.nick} - sorry, I don't understand you" if message_text == "" else \
-                f'{message.author.nick} said:\n>>> {message_text} '
-        elif message.channel.id == int(ENGLISH_CHANNEL) and language != "en":
-            message_text = f":flag_us: {translator.translate(message.content, src=language, dest='en').text}\n"
-            response_message = f'{message.author.nick} said not in English. English text:\n>>> {message_text}'
-        if response_message != "":
-            await message.channel.send(response_message)
+    if message.channel.id in RESTRICTED_CHANNELS:
+        if len(message.content) >= 3 \
+                and not message.content.startswith(("!", "http")) \
+                and message.author != client.user:
+            language = TextBlob(message.content).detect_language()
+            message_text = ""
+            response_message = ""
+            if message.channel.id != int(ENGLISH_CHANNEL):
+                if language in LANGUAGE_CHOICE.keys():
+                    for key, value in LANGUAGE_CHOICE[language].items():
+                        message_text = message_text + f"{value}{translator.translate(message.content, src=language, dest=key).text}\n"
+                response_message = f"{message.author.nick} - sorry, I don't understand you" if message_text == "" else \
+                    f'{message.author.nick} said:\n>>> {message_text} '
+            elif message.channel.id == int(ENGLISH_CHANNEL) and language != "en":
+                message_text = f":flag_us: {translator.translate(message.content, src=language, dest='en').text}\n"
+                response_message = f'{message.author.nick} said not in English. English text:\n>>> {message_text}'
+            if response_message != "":
+                await message.channel.send(response_message)
     await client.process_commands(message)
 
 
