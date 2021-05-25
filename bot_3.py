@@ -22,17 +22,26 @@ client = commands.Bot(command_prefix='!')
 LANGUAGE_CHOICE = {
     "en": {
         "uk": ":flag_ua:",
-        "pt": ":flag_pt:"
+        "pt": ":flag_pt:",
+        "it": ":flag_it:"
     },
     "pt": {
         "uk": ":flag_ua:",
-        "en": ":flag_us:"
+        "en": ":flag_us:",
+        "it": ":flag_it:"
     },
     "uk": {
         "en": ":flag_us:",
-        "pt": ":flag_pt:"
+        "pt": ":flag_pt:",
+        "it": ":flag_it:"
     },
     "ru": {
+        "en": ":flag_us:",
+        "pt": ":flag_pt:",
+        "it": ":flag_it:"
+    },
+    "it": {
+        "uk": ":flag_ua:",
         "en": ":flag_us:",
         "pt": ":flag_pt:"
     }
