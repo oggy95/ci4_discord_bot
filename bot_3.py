@@ -4,11 +4,7 @@ import yaml
 
 from aiohttp import ClientSession
 from discord.ext import commands
-from textblob import TextBlob
 from googletrans import Translator
-
-with open("config.yaml") as file:
-    config = yaml.full_load(file)
 
 client = commands.Bot(command_prefix='!')
 
@@ -40,7 +36,7 @@ async def on_message(message):
         if len(message.content) >= 3 \
                 and not message.content.startswith(("!", "http")) \
                 and message.author != client.user:
-            language = TextBlob(message.content).detect_language()
+            language = translator.detect(message.content)
             message_text = ""
             response_message = ""
             if message.channel.id != int(config["english_channel"]):
@@ -57,6 +53,8 @@ async def on_message(message):
     await client.process_commands(message)
 
 
+with open("config.yaml") as file:
+    config = yaml.full_load(file)
 translator = Translator()
 logging.basicConfig(level=logging.INFO)
 client.run(config["api_token"])
