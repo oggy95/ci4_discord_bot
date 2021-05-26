@@ -36,7 +36,7 @@ async def on_message(message):
         if len(message.content) >= 3 \
                 and not message.content.startswith(("!", "http")) \
                 and message.author != client.user:
-            language = translator.detect(message.content)
+            language = translator.detect(message.content).lang
             message_text = ""
             response_message = ""
             if message.channel.id != int(config["english_channel"]):
