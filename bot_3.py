@@ -1,6 +1,8 @@
 import logging
 import random
 import yaml
+import requests
+import json
 
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -28,6 +30,13 @@ async def random_quote(ctx):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("шо, бля? | wtf!?")
+
+
+@client.command(aliases=['p', 'porn', 'порно'], help="['nsfw', 'porn', 'порно'] NSFW 18+")
+async def nsfw(ctx):
+    response = requests.get(config["porno_link_first"])
+    json_data = json.loads(response.text)
+    await ctx.send(f"{config['porno_link_second']}{json_data['src']}")
 
 
 @client.event
