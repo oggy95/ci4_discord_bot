@@ -6,7 +6,7 @@ import json
 
 from aiohttp import ClientSession
 from discord.ext import commands
-from googletrans import Translator
+from textblob import TextBlob
 
 client = commands.Bot(command_prefix='!')
 
@@ -45,17 +45,18 @@ async def on_message(message):
         if len(message.content) >= 3 \
                 and not message.content.startswith(("!", "http")) \
                 and message.author != client.user:
-            language = translator.detect(message.content).lang
+            blob = TextBlob(message.content)
+            language = blob.detect_language()
             message_text = ""
             response_message = ""
             if message.channel.id != int(config["english_channel"]):
                 if language in config["language_choice"].keys():
                     for key, value in config["language_choice"][language].items():
-                        message_text = message_text + f"{value}{translator.translate(message.content, src=language, dest=key).text}\n"
+                        message_text = message_text + f"{value}{blob.translate(from_lang=language, to=key)}\n"
                 response_message = f"{message.author.nick} - sorry, I don't understand you" if message_text == "" else \
                     f'{message.author.nick} said:\n>>> {message_text} '
             elif message.channel.id == int(config["english_channel"]) and language != "en":
-                message_text = f":flag_us: {translator.translate(message.content, src=language, dest='en').text}\n"
+                message_text = f":flag_us: {blob.translate(from_lang=language, to='en')}\n"
                 response_message = f'{message.author.nick} said not in English. English text:\n>>> {message_text}'
             if response_message != "":
                 await message.channel.send(response_message)
@@ -64,6 +65,5 @@ async def on_message(message):
 
 with open("config.yaml") as file:
     config = yaml.full_load(file)
-translator = Translator()
 logging.basicConfig(level=logging.INFO)
 client.run(config["api_token"])
