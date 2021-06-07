@@ -63,6 +63,52 @@ async def on_message(message):
     await client.process_commands(message)
 
 
+@client.event
+async def on_reaction_add(reaction, user):
+    message = reaction.message
+    if reaction.count == 1:
+        blob = TextBlob(message.content)
+        lg = blob.detect_language()
+        received_emoji = reaction.emoji
+        country_name = get_country(received_emoji)
+        language = ""
+        if country_name is not None:
+            if country_name["name"]["common"] == "France":
+                language = "fr"
+            elif country_name["name"]["common"] == "Germany":
+                language = "de"
+            elif country_name["name"]["common"] == "United States":
+                language = "us"
+            elif country_name["name"]["common"] == "Spain":
+                language = "es"
+            elif country_name["name"]["common"] == "Russia":
+                language = "ru"
+            elif country_name["name"]["common"] == "Portugal":
+                language = "pr"
+            elif country_name["name"]["common"] == "Ukraine":
+                language = "ua"
+            elif country_name["name"]["common"] == "Turkey":
+                language = "tr"
+            elif country_name["name"]["common"] == "Poland":
+                language = "pl"
+            else:
+                language = None
+        if language != "":
+            translated_text = blob.translate(from_lang=lg, to=language)
+            message_text = f"{message.author.nick} said:\n>>> {reaction.emoji} {translated_text}\n"
+            await reaction.message.channel.send(message_text)
+    await client.process_commands(message)
+
+
+def get_country(flag):
+    with open("required_data.json", "r") as datafile:
+        jsondata = json.loads(datafile.read())
+
+    for every in jsondata:
+        if every["flag"] == flag:
+            return every
+
+
 with open("config.yaml") as file:
     config = yaml.full_load(file)
 logging.basicConfig(level=logging.INFO)
