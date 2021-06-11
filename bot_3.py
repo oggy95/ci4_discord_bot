@@ -54,6 +54,8 @@ async def on_message(message):
                 if language in config["language_choice"].keys():
                     for key, value in config["language_choice"][language].items():
                         message_text = message_text + f"{value}{blob.translate(from_lang=language, to=key)}\n"
+                else:
+                    message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
                 response_message = f"{nick} - sorry, I don't understand you" if message_text == "" else \
                     f'{nick} said:\n>>> {message_text} '
             elif message.channel.id == int(config["english_channel"]) and language != "en":
