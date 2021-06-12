@@ -34,9 +34,9 @@ async def on_command_error(ctx, error):
 
 @client.command(aliases=['p', 'porn', 'порно'], help="['nsfw', 'porn', 'порно'] NSFW 18+")
 async def nsfw(ctx):
-    response = requests.get(config["porno_link_first"])
+    response = requests.get(config["porno_link"] + "/random_json.php")
     json_data = json.loads(response.text)
-    await ctx.send(f"{config['porno_link_second']}{json_data['src']}")
+    await ctx.send(f"{config['porno_link']}{json_data['src']}")
 
 
 @client.event
