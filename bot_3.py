@@ -41,28 +41,31 @@ async def nsfw(ctx):
 
 @client.event
 async def on_message(message):
-    if message.channel.id in config["restricted_channels"]:
-        if len(message.content) >= 3 \
-                and not message.content.startswith(("!", "http")) \
-                and message.author != client.user:
-            nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
-            blob = TextBlob(message.content)
-            language = blob.detect_language()
-            message_text = ""
-            response_message = ""
-            if message.channel.id != int(config["english_channel"]):
-                if language in config["language_choice"].keys():
-                    for key, value in config["language_choice"][language].items():
-                        message_text = message_text + f"{value}{blob.translate(from_lang=language, to=key)}\n"
-                else:
-                    message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
-                response_message = f"{nick} - sorry, I don't understand you" if message_text == "" else \
-                    f'{nick} said:\n>>> {message_text} '
-            elif message.channel.id == int(config["english_channel"]) and language != "en":
-                message_text = f":flag_us: {blob.translate(from_lang=language, to='en')}\n"
-                response_message = f'{nick} said not in English. English text:\n>>> {message_text}'
-            if response_message != "":
-                await message.channel.send(response_message)
+    try:
+        if message.channel.id in config["restricted_channels"]:
+            if len(message.content) >= 3 \
+                    and not message.content.startswith(("!", "http")) \
+                    and message.author != client.user:
+                nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
+                blob = TextBlob(message.content)
+                language = blob.detect_language()
+                message_text = ""
+                response_message = ""
+                if message.channel.id != int(config["english_channel"]):
+                    if language in config["language_choice"].keys():
+                        for key, value in config["language_choice"][language].items():
+                            message_text = message_text + f"{value}{blob.translate(from_lang=language, to=key)}\n"
+                    else:
+                        message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
+                    response_message = f"{nick} - sorry, I don't understand you" if message_text == "" else \
+                        f'{nick} said:\n>>> {message_text} '
+                elif message.channel.id == int(config["english_channel"]) and language != "en":
+                    message_text = f":flag_us: {blob.translate(from_lang=language, to='en')}\n"
+                    response_message = f'{nick} said not in English. English text:\n>>> {message_text}'
+                if response_message != "":
+                    await message.channel.send(response_message)
+    except Exception as e:
+        print(f"Chat: {message.channel}. Error: {e}")
     await client.process_commands(message)
 
 
@@ -70,7 +73,7 @@ async def on_message(message):
 async def on_reaction_add(reaction, user):
     message = reaction.message
     nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
-    if reaction.count == 1:
+    if reaction.count == 1 and len(message.content) > 3:
         blob = TextBlob(message.content)
         lg = blob.detect_language()
         received_emoji = reaction.emoji
@@ -98,13 +101,15 @@ async def on_reaction_add(reaction, user):
             else:
                 language = None
         if language != "":
+            message_text = ""
             try:
                 translated_text = blob.translate(from_lang=lg, to=language)
                 message_text = f"{nick} said:\n>>> {reaction.emoji} {translated_text}\n"
             except exceptions.NotTranslated:
                 message_text = f"{nick}: I'm sorry, cannot translate. Maybe languages is identical?"
             finally:
-                await reaction.message.channel.send(message_text)
+                if message_text != "":
+                    await reaction.message.channel.send(message_text)
     await client.process_commands(message)
 
 
