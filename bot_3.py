@@ -1,8 +1,8 @@
 import logging
 import random
+import json
 import yaml
 import requests
-import json
 
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -13,9 +13,9 @@ client = commands.Bot(command_prefix='!')
 
 @client.command(aliases=['мем', 'meme'], help="['мем', 'memes'] Випадковий мем")
 async def memes(ctx):
-    async with ClientSession() as cs:
-        async with cs.get(config["api_link"]) as r:
-            res = await r.json()  # returns dict
+    async with ClientSession() as client_session:
+        async with client_session.get(config["api_link"]) as response:
+            res = await response.json()  # returns dict
             await ctx.send(res['url'])
 
 
@@ -34,83 +34,59 @@ async def on_command_error(ctx, error):
 
 @client.command(aliases=['p', 'porn', 'порно'], help="['nsfw', 'porn', 'порно'] NSFW 18+")
 async def nsfw(ctx):
-    response = requests.get(config["porno_link"] + "/random_json.php")
+    response = requests.get(config["porn_link"] + "/random_json.php")
     json_data = json.loads(response.text)
-    await ctx.send(f"{config['porno_link']}{json_data['src']}")
+    await ctx.send(f"{config['porn_link']}{json_data['src']}")
 
 
 @client.event
 async def on_message(message):
-    try:
-        if message.channel.id in config["restricted_channels"]:
-            if len(message.content) >= 3 \
-                    and not message.content.startswith(("!", "http")) \
-                    and message.author != client.user:
-                nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
-                blob = TextBlob(message.content)
-                language = blob.detect_language()
-                message_text = ""
-                response_message = ""
-                if message.channel.id != int(config["english_channel"]):
-                    if language in config["language_choice"].keys():
-                        for key, value in config["language_choice"][language].items():
-                            message_text = message_text + f"{value}{blob.translate(from_lang=language, to=key)}\n"
-                    else:
-                        message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
-                    response_message = f"{nick} - sorry, I don't understand you" if message_text == "" else \
-                        f'{nick} said:\n>>> {message_text} '
-                elif message.channel.id == int(config["english_channel"]) and language != "en":
-                    message_text = f":flag_us: {blob.translate(from_lang=language, to='en')}\n"
-                    response_message = f'{nick} said not in English. English text:\n>>> {message_text}'
-                if response_message != "":
-                    await message.channel.send(response_message)
-    except Exception as e:
-        print(f"Chat: {message.channel}. Error: {e}")
-    await client.process_commands(message)
+    if message.channel.id in config["restricted_channels"] \
+            and 3 <= len(message.content) <= 4000 \
+            and not message.content.startswith(("!", "http")) \
+            and message.author != client.user \
+            and not (message.content.startswith("<") and message.content.endswith(">")):
+        nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
+        blob = TextBlob(message.content)
+        language = blob.detect_language()
+        response_message = ""
+        if message.channel.id != int(config["english_channel"]):
+            response_message = translate_message(message, language, nick, blob)
+        elif message.channel.id == int(config["english_channel"]) and language != "en":
+            try:
+                response_message = f'{nick} said not in English. English text:\n>>> :flag_us: {blob.translate(from_lang=language, to="en")}\n'
+            except exceptions.NotTranslated:
+                print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
+        if response_message != "":
+            try:
+                await message.channel.send(response_message)
+            except Exception as exception:
+                print(f"Error send message to {message.channel.name} in guild {message.channel.guild}. Channel id: {message.channel.id}. Error type: {exception.__class__}")
+    else:
+        await client.process_commands(message)
 
 
 @client.event
 async def on_reaction_add(reaction, user):
     message = reaction.message
-    nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
-    if reaction.count == 1 and len(message.content) > 3:
+    if 3 <= len(message.content) <= 4000:
         blob = TextBlob(message.content)
-        lg = blob.detect_language()
+        detected_language = blob.detect_language()
         received_emoji = reaction.emoji
         country_name = get_country(received_emoji)
         language = ""
         if country_name is not None:
-            if country_name["name"]["common"] == "France":
-                language = "fr"
-            elif country_name["name"]["common"] == "Germany":
-                language = "de"
-            elif country_name["name"]["common"] == "United States":
-                language = "us"
-            elif country_name["name"]["common"] == "Spain":
-                language = "es"
-            elif country_name["name"]["common"] == "Russia":
-                language = "ru"
-            elif country_name["name"]["common"] == "Portugal":
-                language = "pr"
-            elif country_name["name"]["common"] == "Ukraine":
-                language = "uk"
-            elif country_name["name"]["common"] == "Turkey":
-                language = "tr"
-            elif country_name["name"]["common"] == "Poland":
-                language = "pl"
-            else:
-                language = None
+            language = languages.get(country_name["name"]["common"], "")
         if language != "":
-            message_text = ""
             try:
-                translated_text = blob.translate(from_lang=lg, to=language)
-                message_text = f"{nick} said:\n>>> {reaction.emoji} {translated_text}\n"
+                translated_text = blob.translate(from_lang=detected_language, to=language)
+                message_text = f"{user.display_name} said:\n>>> {reaction.emoji} {translated_text}\n"
             except exceptions.NotTranslated:
-                message_text = f"{nick}: I'm sorry, cannot translate. Maybe languages is identical?"
-            finally:
-                if message_text != "":
-                    await reaction.message.channel.send(message_text)
-    await client.process_commands(message)
+                message_text = f"{user.display_name} said:\n>>> {reaction.emoji} {message.content}\n"
+            if message_text != "":
+                await reaction.message.channel.send(message_text)
+    else:
+        await client.process_commands(message)
 
 
 def get_country(flag):
@@ -120,10 +96,32 @@ def get_country(flag):
     for every in jsondata:
         if every["flag"] == flag:
             return every
+    return None
+
+
+def translate_message(message, language, nick, blob):
+    message_text = ""
+    if language in config["language_choice"].keys():
+        for key, value in config["language_choice"].items():
+            if key == language:
+                continue
+            try:
+                message_text += f"{value}{blob.translate(from_lang=language, to=key)}\n"
+            except exceptions.NotTranslated:
+                print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to {key}")
+                continue
+            except Exception as exception:
+                print(exception, exception.__class__)
+                continue
+    else:
+        message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
+    return f"{nick} - sorry, I don't understand you" if message_text == "" else f'{nick} said:\n>>> {message_text} '
 
 
 with open("config.yaml") as file:
     config = yaml.full_load(file)
+with open("languages.json") as lang_json:
+    languages = json.load(lang_json)
 logging.basicConfig(
     level=logging.DEBUG,
     filename="logger.log",
