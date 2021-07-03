@@ -103,7 +103,7 @@ def translate_message(message, language, nick, blob):
     message_text = ""
     if language in config["language_choice"].keys():
         for key, value in config["language_choice"].items():
-            if key == language:
+            if key == language or (key == "uk" and language == "ru") or (key == "ru" and language == "uk"):
                 continue
             try:
                 message_text += f"{value}{blob.translate(from_lang=language, to=key)}\n"
@@ -114,7 +114,10 @@ def translate_message(message, language, nick, blob):
                 print(exception, exception.__class__)
                 continue
     else:
-        message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
+        try:
+            message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
+        except exceptions.NotTranslated:
+            message_text = ""
     return f"{nick} - sorry, I don't understand you" if message_text == "" else f'{nick} said:\n>>> {message_text} '
 
 
