@@ -1,14 +1,22 @@
 import logging
-import random
 import json
+import re
+
 import yaml
 import requests
 
+from random import choice
+from discord import Embed
 from aiohttp import ClientSession
 from discord.ext import commands
 from textblob import TextBlob, exceptions
 
 client = commands.Bot(command_prefix='!')
+
+emoji_list = ["🇺:regional_indicator_a:", "🇺:regional_indicator_s:", "🇹:regional_indicator_r:",
+              "🇵:regional_indicator_t:", "🇮:regional_indicator_t:", "🇩:regional_indicator_e:"]
+
+TIMEOUT = 30
 
 
 @client.command(aliases=['мем', 'meme'], help="['мем', 'memes'] Випадковий мем")
@@ -23,7 +31,7 @@ async def memes(ctx):
 async def random_quote(ctx):
     channel_id = client.get_channel(config["channel_quotes"])
     messages = await channel_id.history(limit=123).flatten()
-    await ctx.send(ctx.message.author.mention + ", що ти хочеш? От тобі цитата: " + random.choice(messages).content)
+    await ctx.send(ctx.message.author.mention + ", що ти хочеш? От тобі цитата: " + choice(messages).content)
 
 
 @client.event
@@ -41,27 +49,33 @@ async def nsfw(ctx):
 
 @client.event
 async def on_message(message):
-    if message.channel.id in config["restricted_channels"] \
-            and 3 <= len(message.content) <= 4000 \
-            and not message.content.startswith(("!", "http")) \
-            and message.author != client.user \
-            and not (message.content.startswith("<") and message.content.endswith(">")):
+    if message.channel.id in config["restricted_channels"] and message.author != client.user:
         nick = message.author.nick if message.author.nick is not None else str(message.author).split("#")[0]
-        blob = TextBlob(message.content)
-        language = blob.detect_language()
-        response_message = ""
-        if message.channel.id != int(config["english_channel"]):
-            response_message = translate_message(message, language, nick, blob)
-        elif message.channel.id == int(config["english_channel"]) and language != "en":
-            try:
-                response_message = f'{nick} said not in English. English text:\n>>> :flag_us: {blob.translate(from_lang=language, to="en")}\n'
-            except exceptions.NotTranslated:
-                print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
-        if response_message != "":
-            try:
-                await message.channel.send(response_message)
-            except Exception as exception:
-                print(f"Error send message to {message.channel.name} in guild {message.channel.guild}. Channel id: {message.channel.id}. Error type: {exception.__class__}")
+        print("Before format: ", message.content)
+        formatted_message = format_message(message.content).strip()
+        print("After format: ", formatted_message)
+        if 3 <= len(formatted_message) <= 4000:
+            blob = TextBlob(formatted_message)
+            language = blob.detect_language()
+            response_message = ""
+            if message.channel.id != int(config["english_channel"]):
+                response_message = translate_message(message, language, nick, blob)
+            elif message.channel.id == int(config["english_channel"]) and language != "en":
+                try:
+                    response_message = f'{nick} said not in English. English text:\n>>> :flag_us: {blob.translate(from_lang=language, to="en")}\n'
+                except exceptions.NotTranslated:
+                    print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
+            if response_message != "":
+                try:
+                    if type(response_message) is Embed:
+                        await message.reply(embed=response_message)
+                    else:
+                        await message.reply(response_message)
+                except Exception as exception:
+                    print(f"Error send message to {message.channel.name} in guild {message.channel.guild}. "
+                          f"Channel id: {message.channel.id}. Detail: {exception}")
+        else:
+            await client.process_commands(message)
     else:
         await client.process_commands(message)
 
@@ -69,7 +83,7 @@ async def on_message(message):
 @client.event
 async def on_reaction_add(reaction, user):
     message = reaction.message
-    if 3 <= len(message.content) <= 4000:
+    if 3 <= len(message.content) <= 4000 and user != client.user:
         blob = TextBlob(message.content)
         detected_language = blob.detect_language()
         received_emoji = reaction.emoji
@@ -79,12 +93,12 @@ async def on_reaction_add(reaction, user):
             language = languages.get(country_name["name"]["common"], "")
         if language != "":
             try:
-                translated_text = blob.translate(from_lang=detected_language, to=language)
-                message_text = f"{user.display_name} said:\n>>> {reaction.emoji} {translated_text}\n"
+                result_message = blob.translate(from_lang=detected_language, to=language)
             except exceptions.NotTranslated:
-                message_text = f"{user.display_name} said:\n>>> {reaction.emoji} {message.content}\n"
-            if message_text != "":
-                await reaction.message.channel.send(message_text)
+                result_message = message.content
+            message_text = f"{user.display_name} said:\n>>> {reaction.emoji} {result_message}\n"
+            sent_message = await reaction.message.channel.send(message_text)
+            await sent_message.delete(delay=TIMEOUT)
     else:
         await client.process_commands(message)
 
@@ -103,10 +117,10 @@ def translate_message(message, language, nick, blob):
     message_text = ""
     if language in config["language_choice"].keys():
         for key, value in config["language_choice"].items():
-            if key == language or (key == "uk" and language == "ru") or (key == "ru" and language == "uk"):
+            if key == language or (key == "uk" and language == "ru") or key == "ru":
                 continue
             try:
-                message_text += f"{value}{blob.translate(from_lang=language, to=key)}\n"
+                message_text += f"{value} **{blob.translate(from_lang=language, to=key)}**\n"
             except exceptions.NotTranslated:
                 print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to {key}")
                 continue
@@ -115,10 +129,17 @@ def translate_message(message, language, nick, blob):
                 continue
     else:
         try:
-            message_text = f":flag_us:{blob.translate(from_lang=language, to='us')}"
+            message_text = f":flag_us: {blob.translate(from_lang=language, to='us')}"
         except exceptions.NotTranslated:
             message_text = ""
-    return f"{nick} - sorry, I don't understand you" if message_text == "" else f'{nick} said:\n>>> {message_text} '
+    return f"{nick} - sorry, I don't understand you" if message_text == "" else Embed(description=message_text)
+
+
+def format_message(message):
+    regular_list = [r"<\s*\S*>", r"https?:\/\/.*[\r\n]*"]
+    for reg in regular_list:
+        message = re.sub(reg, "", message)
+    return message
 
 
 with open("config.yaml") as file:
