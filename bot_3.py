@@ -35,21 +35,31 @@ async def on_command_error(ctx, error):
         await ctx.send("шо, бля? | wtf!?")
 
 
-@client.command(aliases=['p', 'porn', 'порно'], help="['nsfw', 'porn', 'порно'] NSFW 18+")
+# @client.event
+# async def on_ready():
+#     channel_id = client.get_channel(873292385956810784)
+#     await channel_id.send("Good morning everyone! Ready to serve! :)")
+
+
+@client.command(aliases=['p'], help="['p'] NSFW 18+")
 async def nsfw(ctx):
-    async with ClientSession() as client_session:
-        async with client_session.get(config["porn_link"] + "/random_json.php") as response:
-            json_data = json.loads(await response.read())
-            await ctx.send(f"{config['porn_link']}{json_data['src']}")
+    if ctx.channel.id != config["perv_corner"]:
+        sent_message = await ctx.send("Sorry, this chat if not for NSFW. Try another chat.")
+        await sent_message.delete(delay=TIMEOUT)
+    else:
+        async with ClientSession() as client_session:
+            async with client_session.get(config["porn_link"] + "/random_json.php") as response:
+                json_data = json.loads(await response.read())
+                await ctx.send(f"{config['porn_link']}{json_data['src']}")
 
 
 @client.event
 async def on_message(message):
-    if message.channel.id in config["restricted_channels"] and message.author != client.user:
+    if message.channel.id in config["restricted_channels"]\
+            and message.author != client.user and message.content.startswith("!") is False:
         nick = message.author.nick if message.author.nick is not None else str(message.author).split("#", maxsplit=1)[0]
-        print("Before format: ", message.content)
+        print(f"{nick} said: ", message.content)
         formatted_message = format_message(message.content).strip()
-        print("After format: ", formatted_message)
         if 3 <= len(formatted_message) <= 4000:
             blob = TextBlob(formatted_message)
             language = blob.detect_language()
@@ -113,7 +123,7 @@ def translate_message(message, language, nick, blob):
             message_text = f":flag_us: {blob.translate(to='en')}"
         except exceptions.NotTranslated:
             message_text = ""
-    return f"{nick} - sorry, I don't understand you" if message_text == "" else Embed(description=message_text)
+    return "" if message_text == "" else Embed(description=message_text)
 
 
 def detect_language(received_emoji):
@@ -124,7 +134,13 @@ def detect_language(received_emoji):
 
 
 def format_message(message):
-    regular_list = [r"<\s*\S*>", r"https?:\/\/.*[\r\n]*"]
+    regrex_pattern = re.compile(pattern="["
+                                        u"\U0001F600-\U0001F64F"  # emoticons
+                                        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                                        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                                        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                                        "]+", flags=re.UNICODE)
+    regular_list = [r"<\s*\S*>", r"https?:\/\/.*[\r\n]*", regrex_pattern]
     for reg in regular_list:
         message = re.sub(reg, "", message)
     return message
