@@ -19,10 +19,15 @@ TIMEOUT = 30
 
 @client.command()
 async def play(ctx, url):
+    channel = ctx.message.author.voice.channel
+    voice = get(client.voice_clients, guild=ctx.guild)
+    if voice and voice.is_connected():
+        await voice.move_to(channel)
+    else:
+        await channel.connect()
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': 'True'}
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    print(client)
     voice = get(client.voice_clients, guild=ctx.guild)
 
     if not voice.is_playing():
@@ -40,13 +45,12 @@ async def play(ctx, url):
 
 
 @client.command()
-async def join(ctx):
-    channel = ctx.message.author.voice.channel
-    voice = get(client.voice_clients, guild=ctx.guild)
-    if voice and voice.is_connected():
-        await voice.move_to(channel)
-    else:
-        await channel.connect()
+async def leave(ctx):
+    if ctx.voice_client:  # If the bot is in a voice channel
+        await ctx.guild.voice_client.disconnect()  # Leave the channel
+        await ctx.send('Bot left')
+    else:  # But if it isn't
+        await ctx.send("I'm not in a voice channel, use the join command to make me join")
 
 
 # command to resume voice if it is paused
@@ -129,11 +133,18 @@ async def on_message(message):
             blob = TextBlob(formatted_message)
             language = blob.detect_language()
             response_message = ""
-            if message.channel.id != int(config["english_channel"]):
+            if message.channel.id != int(config["english_channel"]) and message.channel.id != int(config["brm"]):
                 response_message = translate_message(message, language, nick, blob)
             elif message.channel.id == int(config["english_channel"]) and language != "en":
                 try:
                     response_message = f'{nick} said not in English. English text:\n>>> :flag_us: {blob.translate(to="en")}\n'
+                except exceptions.NotTranslated:
+                    print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
+            elif message.channel.id == int(config["brm"]):
+                try:
+                    flag = ":flag_us:" if language != "en" else ":flag_ua:"
+                    to_lang = "en" if language != "en" else "uk"
+                    response_message = f'>>> {flag} {blob.translate(to=to_lang)}\n'
                 except exceptions.NotTranslated:
                     print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
             if response_message != "":
