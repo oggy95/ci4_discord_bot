@@ -1,7 +1,10 @@
+import asyncio
 import logging
 import re
 import json
 import random
+
+import discord
 import yaml
 
 from discord import Embed
@@ -34,10 +37,15 @@ async def play(ctx, url):
         with YoutubeDL(YDL_OPTIONS) as ydl:
             info = ydl.extract_info(url, download=False)
         URL = info['url']
+        video_title = info.get('title', None)
         voice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS))
         voice.is_playing()
-        await ctx.send('Bot is playing')
 
+        await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=video_title))
+        await ctx.send('Bot is playing')
+        await asyncio.sleep(info["duration"] + 60)
+        await client.change_presence(status=None)
+        await ctx.send("I'm leaving")
     # check if the bot is already playing
     else:
         await ctx.send("Bot is already playing")
@@ -49,6 +57,7 @@ async def leave(ctx):
     if ctx.voice_client:  # If the bot is in a voice channel
         await ctx.guild.voice_client.disconnect()  # Leave the channel
         await ctx.send('Bot left')
+        await client.change_presence(status=None)
     else:  # But if it isn't
         await ctx.send("I'm not in a voice channel, use the join command to make me join")
 
@@ -81,6 +90,7 @@ async def stop(ctx):
     if voice.is_playing():
         voice.stop()
         await ctx.send('Stopping...')
+        await client.change_presence(status=None)
 
 
 @client.command(aliases=['мем', 'meme'], help="['мем', 'memes'] Випадковий мем")
