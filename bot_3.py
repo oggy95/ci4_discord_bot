@@ -46,6 +46,7 @@ async def play(ctx, url):
         await asyncio.sleep(info["duration"] + 60)
         await client.change_presence(status=None)
         await ctx.send("I'm leaving")
+        await ctx.guild.voice_client.disconnect()
     # check if the bot is already playing
     else:
         await ctx.send("Bot is already playing")
