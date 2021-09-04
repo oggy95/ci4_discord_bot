@@ -43,6 +43,7 @@ async def play(ctx, url):
 
         await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=video_title))
         await ctx.send('Bot is playing')
+        print(info["duration"])
         await asyncio.sleep(info["duration"] + 60)
         await client.change_presence(status=None)
         await ctx.send("I'm leaving")
@@ -104,7 +105,7 @@ async def memes(ctx):
 
 @client.command(name='рандом', help='Випадкова цитата гільдії')
 async def random_quote(ctx):
-    channel_id = client.get_channel(config["channel_quotes"])
+    channel_id = client.get_channel(config["ci4_guild"]["channel_quotes"])
     messages = await channel_id.history(limit=123).flatten()
     await ctx.send(ctx.message.author.mention + ", що ти хочеш? От тобі цитата: " + random.choice(messages).content)
 
@@ -115,15 +116,17 @@ async def on_command_error(ctx, error):
         await ctx.send("шо, бля? | wtf!?")
 
 
-# @client.event
-# async def on_ready():
-#     channel_id = client.get_channel(873292385956810784)
-#     await channel_id.send("Good morning everyone! Ready to serve! :)")
+@client.event
+async def on_member_join(member):
+    guest_role = client.get_guild(config["ci4_guild"]["guild_id"]).get_role(config["ci4_guild"]["guest_role"])
+    await member.add_roles(guest_role)
+    channel_id = client.get_channel(config["ci4_guild"]["main_channel"])
+    await channel_id.send(f"Welcome {member.display_name}. You are a guest for this server, with time @⭐Officer⭐Генеральна Старшина will give you a role :)")
 
 
 @client.command(aliases=['p'], help="['p'] NSFW 18+")
 async def nsfw(ctx):
-    if ctx.channel.id != config["perv_corner"]:
+    if ctx.channel.id != config["ci4_guild"]["perv_corner"]:
         sent_message = await ctx.send("Sorry, this chat if not for NSFW. Try another chat.")
         await sent_message.delete(delay=TIMEOUT)
     else:
@@ -144,14 +147,14 @@ async def on_message(message):
             blob = TextBlob(formatted_message)
             language = blob.detect_language()
             response_message = ""
-            if message.channel.id != int(config["english_channel"]) and message.channel.id != int(config["brm"]):
+            if message.channel.id != int(config["ci4_guild"]["english_channel"]) and message.channel.id != int(config["ci4_guild"]["brm"]):
                 response_message = translate_message(message, language, nick, blob)
-            elif message.channel.id == int(config["english_channel"]) and language != "en":
+            elif message.channel.id == int(config["ci4_guild"]["english_channel"]) and language != "en":
                 try:
                     response_message = f'{nick} said not in English. English text:\n>>> :flag_us: {blob.translate(to="en")}\n'
                 except exceptions.NotTranslated:
                     print(f"Author: {nick}. Message: {message.content}. Error translate from {language} to en")
-            elif message.channel.id == int(config["brm"]):
+            elif message.channel.id == int(config["ci4_guild"]["brm"]):
                 try:
                     flag = ":flag_us:" if language != "en" else ":flag_ua:"
                     to_lang = "en" if language != "en" else "uk"
